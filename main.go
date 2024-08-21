@@ -72,6 +72,17 @@ func main() {
 
 	rand.Seed(time.Now().UnixNano()) //updates the random seed everytime programm runs
 
+	stat, _ := os.Stdin.Stat()
+	if (stat.Mode() & os.ModeCharDevice) != 0 { //to check if there is data piped in
+		fmt.Println("Error: no input text")
+		os.Exit(1)
+	}
+
+	if (*numWords <= 0) || (*numWords > 10000) {
+		fmt.Println("Number of words to print should be in range [1;10,000]")
+		os.Exit(1)
+	}
+
 	c := NewChain(*prefixLen)
 	c.Build(os.Stdin)
 	text := c.Generate(*numWords)
