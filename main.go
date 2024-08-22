@@ -88,10 +88,28 @@ func main() {
 	numWords := flag.Int("w", 100, "number of words to print")
 	prefixLen := flag.Int("l", 2, "number of words in the prefix")
 	prefix := flag.String("p", "", "starting prefix")
+	help := flag.Bool("help", false, "usage text")
 
 	flag.Parse()
 
 	rand.Seed(time.Now().UnixNano()) //updates the random seed everytime programm runs
+
+	if *help {
+		usage := `Markov Chain text generator.
+
+Usage:
+	markovchain [-w <N>] [-p <S>] [-l <N>]
+	markovchain --help
+
+Options:
+	--help  Show this screen.
+	-w N    Number of maximum words
+	-p S    Starting prefix
+	-l N    Prefix length`
+
+		fmt.Println(usage)
+		os.Exit(1)
+	}
 
 	stat, _ := os.Stdin.Stat()
 	if (stat.Mode() & os.ModeCharDevice) != 0 { //to check if there is data piped in
@@ -106,6 +124,11 @@ func main() {
 
 	if (*prefixLen <= 0) || (*prefixLen > 5) {
 		fmt.Println("Prefix length should be in range [1:5]")
+		os.Exit(1)
+	}
+
+	if *prefix != "" && len(strings.Fields(*prefix)) != *prefixLen {
+		fmt.Println("Length of given prefix must be equal to the prefix length(2 by default)")
 		os.Exit(1)
 	}
 
