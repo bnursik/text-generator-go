@@ -46,12 +46,6 @@ func (c *Chain) Build(r io.Reader, prefix string) {
 			found = true
 		}
 
-		for _, s := range p {
-			if s == prefix {
-				found = true
-			}
-		}
-
 		key := p.String()
 		c.chain[key] = append(c.chain[key], s)
 		p.Shift(s)
