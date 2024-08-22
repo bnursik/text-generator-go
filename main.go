@@ -31,9 +31,10 @@ func NewChain(prefixLen int) *Chain {
 	return &Chain{make(map[string][]string), prefixLen}
 }
 
-func (c *Chain) Build(r io.Reader) {
+func (c *Chain) Build(r io.Reader, prefix string) {
 	br := bufio.NewReader(r)
 	p := make(Prefix, c.prefixLen)
+	found := false
 
 	for {
 		var s string
@@ -41,16 +42,35 @@ func (c *Chain) Build(r io.Reader) {
 			break
 		}
 
+		if strings.Join(p, " ") == prefix {
+			found = true
+		}
+
+		for _, s := range p {
+			if s == prefix {
+				found = true
+			}
+		}
+
 		key := p.String()
 		c.chain[key] = append(c.chain[key], s)
 		p.Shift(s)
 	}
+
+	if !found {
+		fmt.Println("Given prefix is not found in the original text")
+		os.Exit(1)
+	}
 }
 
-func (c *Chain) Generate(n int) string {
+func (c *Chain) Generate(n int, prefix string) string {
 	p := make(Prefix, c.prefixLen)
 	var words []string
-	for i := 0; i < n; i++ {
+	if prefix != "" {
+		words = append(words, prefix)
+		p = strings.Fields(prefix)
+	}
+	for i := 0; i < n-len(p); i++ {
 		suffixes := c.chain[p.String()]
 		if len(suffixes) == 0 {
 			break
@@ -67,6 +87,7 @@ func (c *Chain) Generate(n int) string {
 func main() {
 	numWords := flag.Int("w", 100, "number of words to print")
 	prefixLen := flag.Int("l", 2, "number of words in the prefix")
+	prefix := flag.String("p", "", "starting prefix")
 
 	flag.Parse()
 
@@ -83,8 +104,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	if (*prefixLen <= 0) || (*prefixLen > 5) {
+		fmt.Println("Prefix length should be in range [1:5]")
+		os.Exit(1)
+	}
+
 	c := NewChain(*prefixLen)
-	c.Build(os.Stdin)
-	text := c.Generate(*numWords)
+	c.Build(os.Stdin, *prefix)
+	text := c.Generate(*numWords, *prefix)
 	fmt.Println(text)
 }
