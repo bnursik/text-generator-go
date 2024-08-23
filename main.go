@@ -42,7 +42,7 @@ func (c *Chain) Build(r io.Reader, prefix string) {
 			break
 		}
 
-		if strings.Join(p, " ") == prefix {
+		if prefix != " " && strings.Join(p, " ") == prefix {
 			found = true
 		}
 
@@ -51,7 +51,7 @@ func (c *Chain) Build(r io.Reader, prefix string) {
 		p.Shift(s)
 	}
 
-	if !found {
+	if prefix != " " && !found {
 		fmt.Println("Given prefix is not found in the original text")
 		os.Exit(1)
 	}
@@ -60,19 +60,31 @@ func (c *Chain) Build(r io.Reader, prefix string) {
 func (c *Chain) Generate(n int, prefix string) string {
 	p := make(Prefix, c.prefixLen)
 	var words []string
-	if prefix != "" {
+	if prefix != " " {
 		words = append(words, prefix)
 		p = strings.Fields(prefix)
-	}
-	for i := 0; i < n-len(p); i++ {
-		suffixes := c.chain[p.String()]
-		if len(suffixes) == 0 {
-			break
-		}
 
-		nextWord := suffixes[rand.Intn(len(suffixes))]
-		words = append(words, nextWord)
-		p.Shift(nextWord)
+		for i := 0; i < n-len(p); i++ {
+			suffixes := c.chain[p.String()]
+			if len(suffixes) == 0 {
+				break
+			}
+
+			nextWord := suffixes[rand.Intn(len(suffixes))]
+			words = append(words, nextWord)
+			p.Shift(nextWord)
+		}
+	} else {
+		for i := 0; i < n; i++ {
+			suffixes := c.chain[p.String()]
+			if len(suffixes) == 0 {
+				break
+			}
+
+			nextWord := suffixes[rand.Intn(len(suffixes))]
+			words = append(words, nextWord)
+			p.Shift(nextWord)
+		}
 	}
 
 	return strings.Join(words, " ")
@@ -81,12 +93,12 @@ func (c *Chain) Generate(n int, prefix string) string {
 func main() {
 	numWords := flag.Int("w", 100, "number of words to print")
 	prefixLen := flag.Int("l", 2, "number of words in the prefix")
-	prefix := flag.String("p", "", "starting prefix")
+	prefix := flag.String("p", " ", "starting prefix")
 	help := flag.Bool("help", false, "usage text")
 
 	flag.Parse()
 
-	rand.Seed(time.Now().UnixNano()) //updates the random seed everytime programm runs
+	rand.Seed(time.Now().UnixNano()) // updates the random seed everytime programm runs
 
 	if *help {
 		usage := `Markov Chain text generator.
@@ -106,13 +118,13 @@ Options:
 	}
 
 	stat, _ := os.Stdin.Stat()
-	if (stat.Mode() & os.ModeCharDevice) != 0 { //to check if there is data piped in
+	if (stat.Mode() & os.ModeCharDevice) != 0 { // to check if there is data piped in
 		fmt.Println("Error: no input text")
 		os.Exit(1)
 	}
 
 	if (*numWords <= 0) || (*numWords > 10000) {
-		fmt.Println("Number of words to print should be in range [1;10,000]")
+		fmt.Println("Number of words to print should be in range [1:10,000]")
 		os.Exit(1)
 	}
 
@@ -121,8 +133,13 @@ Options:
 		os.Exit(1)
 	}
 
-	if *prefix != "" && len(strings.Fields(*prefix)) != *prefixLen {
+	if *prefix != " " && len(strings.Fields(*prefix)) != *prefixLen {
 		fmt.Println("Length of given prefix must be equal to the prefix length(2 by default)")
+		os.Exit(1)
+	}
+
+	if *prefix != " " && len(strings.Fields(*prefix)) > *numWords {
+		fmt.Println("Length of given prefix must NOT be more than the number of words (100 by default)")
 		os.Exit(1)
 	}
 
